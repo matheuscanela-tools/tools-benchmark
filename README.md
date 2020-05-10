@@ -1,6 +1,6 @@
-## Redis-Benchmark Script
+## Benchmark Script
 
-Redis-Benchmark script was designed to simulate reads and writes against a Redis server. The script allows you to specify the number of simultaneous threads, loops per thread and for how long the script will wait for each loop.
+This benchmark script was designed to simulate reads and writes against a server. The script allows you to specify the number of simultaneous threads, loops per thread and for how long the script will wait for each loop.
 
 #### Write Mode
 
@@ -13,17 +13,13 @@ If a write-read simulation is necessary - use the options BENCH_AS_READER=False 
 #### Read Mode
 
 The reading mode uses the same structure created by the write mode. For example. if the cache was created with 1000 threads and 10000 loops, just set the same parameters with the read mode on, and it will read the cache created until the end.
-
-#### Requirements
-
-`pip3 install redis`
-
+s
 #### Parameters
 
 Options: Environment variables or script arguments 
 
 - `BENCH_SERVER` or `-h`
-  - Redis hostname (required-string)
+  - Hostname (required-string)
 - `BENCH_THREADS` or `-t`
   - number of threads. (required-int)
 - `BENCH_THREAD_LOOPS` or `-l`
@@ -49,7 +45,7 @@ Options: Environment variables or script arguments
 `export BENCH_THREADS=50`
 `export BENCH_THREAD_LOOPS=50`
 `export BENCH_MODE=0`
-`python3 redis-benchmark.py`
+`python3 benchmark.py`
 
 #### Write Mode
 `export BENCH_SERVER=\<servername\>`
@@ -57,6 +53,6 @@ Options: Environment variables or script arguments
 `export BENCH_THREAD_LOOPS=100`
 `export BENCH_MODE=1`
 `export BENCH_FILE=payload.json`
-`python3 redis-benchmark.py`
+`python3 benchmark.py`
 
-To keep the script running, use  `while :; do sleep 5; python3 redis-benchmark.py ; done`
+To keep the script running, use  `while :; do sleep 5; python3 benchmark.py ; done`

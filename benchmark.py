@@ -1,4 +1,4 @@
-import redis
+# Main Libraries
 import uuid
 import _thread
 import time
@@ -9,6 +9,8 @@ import json
 import signal
 from distutils import util
 
+# Extra Libraries
+
 ## Globals - Arguments
 argPrintGet = False
 argTotalThread = None
@@ -17,25 +19,15 @@ argThreadLoopDelay = 0.0
 argJsonFile = None
 argServer = None
 argServerSSL = True
-argServerPort = 6379
+argServerPort = None
 argAsReader = True
 
 # Globals - Others
 jsonObject = None
 threadExitStatus = None
-redisClient = None
+client = None
 threadErrorsLimit = 2
 threadErrorsDelay = 0.2
-
-# Sizes
-# 2893973  = 19GB / (Threads 100 Loops 100000)
-# 1523143  = 10GB / (Threads 100 Loops 15231)
-# 761571   = 5GB  / (Threads 100 Loops 7615)
-# 152314   = 1GB  / (Threads 100 Loops 1520)
-
-## Command 
-# WRITER - python3 generate-data.py -h master.elasticache-autoscaling-m5-xlarge.m82bcs.apse2.cache.amazonaws.com -t 10 -l 10 -f payload.json
-# READER - python3 generate-data.py -h master.elasticache-autoscaling-m5-xlarge.m82bcs.apse2.cache.amazonaws.com -t 10 -l 10 -r True -v True
 
 def readJsonObject():
   global jsonObject
@@ -125,12 +117,10 @@ def arguments():
     if "BENCH_THREAD_LOOP_DELAY" in os.environ:
         argThreadLoopDelay = float(os.environ["BENCH_THREAD_LOOP_DELAY"])
       
-def connectRedis():
-    global redisClient    
-    redisClient = redis.StrictRedis(host=argServer, port=argServerPort, db=0, ssl=argServerSSL)
-    redis.BlockingConnectionPool(timeout=5)
+def connectClient():
+    global client    
 
-def elasticache(number, loops):
+def thread(number, loops):
     count = 0
     errors = 0
 
@@ -139,29 +129,11 @@ def elasticache(number, loops):
             print("Thread number %s couldn't connect after %s errors/" % (str(number),str(errors)))
             break
 
+        uid = str(number) + "-" + str(count)
         try:
-            uid = str(number) + "-" + str(count)
-            
-            if not argAsReader:
-                redisClient.set(uid, str(jsonObject))
-            
-            if argPrintGet or argAsReader:
-                getResult = redisClient.get(uid)
+            # START - CODE HERE
 
-            if argPrintGet:
-                print("UID %s" % uid)
-                print(getResult)
-
-            elif not argPrintGet and argAsReader:
-                if getResult is not None:
-                    lenString = str(len(getResult))
-                else:
-                    lenString = "0"
-
-                print("UID %s - String size loaded - %s" % (uid, lenString))
-
-            else:
-                print("UID %s" % uid)
+            # FINISH - CODE HERE
 
             count = count + 1
 
@@ -169,19 +141,9 @@ def elasticache(number, loops):
             if count == loops:
                 threadExitStatus[number] = True
                 break
-
-        except ConnectionError as e:
-            print("Connection Error detected - waiting to re connect")
-            with open("logs/conn_" + uid + ".txt", "a") as file_object:
-                # Append 'hello' at the end of file
-                file_object.write(repr(e))
-
-            
-            time.sleep(threadErrorsDelay)
-            errors = errors + 1
             
         except Exception as e:
-            print("A non connection exception happened.")
+            print("Exception happened.")
             with open("logs/all_" + uid + ".txt", "a") as file_object:
                 # Append 'hello' at the end of file
                 file_object.write(repr(e))   
@@ -189,14 +151,13 @@ def elasticache(number, loops):
             time.sleep(threadErrorsDelay)
             errors = errors + 1
         
-
 def threadManager():
   global threadExitStatus
   threadsCount = 0
   threadExitStatus = [False] * argTotalThread
   
   while True:
-    _thread.start_new_thread(elasticache, (threadsCount,argThreadTotalLoops))
+    _thread.start_new_thread(thread, (threadsCount,argThreadTotalLoops))
     threadsCount = threadsCount + 1
 
     if threadsCount == argTotalThread:
@@ -209,7 +170,7 @@ def printHelp():
     print('Required -f json file payload used to set the cache. (string) - not required if reader mode is on')
     print('Required -m set the script to write or read (int) 0 Read / 1 Write')
     print('Optional -v for printing the object - reader or writer mode - default False (True/False)')
-    print('Optional -p server port - default 6379. (int)')
+    print('Optional -p server port. (int)')
     print('Optional -s connect using SSL - default True. (True/False)')
     print('Optional -d set the delay between lops within threads - default 0.0 (float)')
 
@@ -228,7 +189,7 @@ if __name__ == '__main__':
 
     print("Working as Reader? %s" % str(argAsReader))
 
-    connectRedis()
+    connectClient()
     threadManager()
 
     while False in threadExitStatus: pass
